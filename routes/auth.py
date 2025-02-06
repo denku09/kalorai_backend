@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from app import db
-from app.models import User
+from app.models import User  # Hata verirse burayı kaldır
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 import datetime
 
