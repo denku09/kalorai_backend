@@ -1,46 +1,17 @@
-from flask import Blueprint, request, jsonify
-from app import db
-from app.models import Meal
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from app import db  # Circular import sorununu engellemek için içe aktarıldı.
+from flask_sqlalchemy import SQLAlchemy
 
-meals_bp = Blueprint('meals', __name__)
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), nullable=False)
+    email = db.Column(db.String(128), unique=True, index=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
 
-@meals_bp.route('', methods=['POST'])
-@jwt_required()
-def add_meal():
-    current_user = get_jwt_identity()
-    data = request.get_json()
-    food_name = data.get("food_name")
-    portion = data.get("portion")
-    calories = data.get("calories")
-    
-    if not food_name or portion is None or calories is None:
-        return jsonify({"message": "Lütfen yiyecek adı, porsiyon ve kalori bilgilerini giriniz."}), 400
-    
-    new_meal = Meal(user_id=current_user, food_name=food_name, portion=portion, calories=calories)
-    db.session.add(new_meal)
-    db.session.commit()
-    
-    return jsonify({"message": "Yemek eklendi."}), 201
+class Meal(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    food_name = db.Column(db.String(128), nullable=False)
+    calories = db.Column(db.Integer, nullable=False)
+    timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-@meals_bp.route('/dashboard', methods=['GET'])
-@jwt_required()
-def dashboard():
-    current_user = get_jwt_identity()
-    meals = Meal.query.filter_by(user_id=current_user).all()
-    total_calories = sum(meal.calories for meal in meals)
-    
-    meals_data = []
-    for meal in meals:
-        meals_data.append({
-            "id": meal.id,
-            "food_name": meal.food_name,
-            "portion": meal.portion,
-            "calories": meal.calories,
-            "timestamp": meal.timestamp.isoformat()
-        })
-        
-    return jsonify({
-        "total_calories": total_calories,
-        "meals": meals_data
-    }), 200
+    user = db.relationship('User', backref=db.backref('meals', lazy=True))
