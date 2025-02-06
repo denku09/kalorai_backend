@@ -1,22 +1,28 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
-from .config import Config
-from routes.test import test_bp
-app.register_blueprint(test_bp, url_prefix="/")
+import os
 
-
+# Veritabanı bağlantısı
 db = SQLAlchemy()
-jwt = JWTManager()
+migrate = Migrate()
 
 def create_app():
     app = Flask(__name__)
-    app.config.from_object(Config)
 
+    # Config ayarlarını yükle
+    app.config.from_object("app.config.Config")
+
+    # Veritabanı bağlantısını başlat
     db.init_app(app)
-    jwt.init_app(app)
+    migrate.init_app(app, db)
 
-    # Blueprint'leri ekleyelim
+    # JWT'yi başlat
+    jwt = JWTManager(app)
+
+    # Blueprint'leri import et ve yükle (Importları FONKSİYON içinde yapmalıyız!)
+    from app.models import User  # Veritabanı modellerini burada import et
     from routes.auth import auth_bp
     from routes.meals import meals_bp
     from routes.analyze import analyze_bp
